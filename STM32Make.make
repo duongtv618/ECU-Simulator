@@ -75,19 +75,10 @@ endif
 ######################################
 # C sources
 C_SOURCES =  \
-Core/Src/adc.c \
-Core/Src/freertos.c \
-Core/Src/gpio.c \
-Core/Src/iwdg.c \
+Application/app.c \
+Application/comm.c \
+Application/sensor.c \
 Core/Src/main.c \
-Core/Src/stm32f4xx_hal_msp.c \
-Core/Src/stm32f4xx_hal_timebase_tim.c \
-Core/Src/stm32f4xx_it.c \
-Core/Src/syscalls.c \
-Core/Src/sysmem.c \
-Core/Src/system_stm32f4xx.c \
-Core/Src/tim.c \
-Core/Src/usart.c \
 Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal.c \
 Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_adc.c \
 Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_adc_ex.c \
@@ -116,7 +107,21 @@ Middlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM4_MPU/port.c \
 Middlewares/Third_Party/FreeRTOS/Source/queue.c \
 Middlewares/Third_Party/FreeRTOS/Source/stream_buffer.c \
 Middlewares/Third_Party/FreeRTOS/Source/tasks.c \
-Middlewares/Third_Party/FreeRTOS/Source/timers.c
+Middlewares/Third_Party/FreeRTOS/Source/timers.c \
+OS/adc.c \
+OS/freertos.c \
+OS/gpio.c \
+OS/iwdg.c \
+OS/os.c \
+OS/stm32f4xx_hal_msp.c \
+OS/stm32f4xx_hal_timebase_tim.c \
+OS/stm32f4xx_it.c \
+OS/syscalls.c \
+OS/sysmem.c \
+OS/system_stm32f4xx.c \
+OS/tim.c \
+OS/usart.c \
+Safety/supervisor.c
 
 
 CXX_SOURCES = \
@@ -209,6 +214,7 @@ AS_INCLUDES = \
 
 # C includes
 C_INCLUDES =  \
+-IApplication \
 -ICore/Inc \
 -IDrivers/CMSIS/Device/ST/STM32F4xx/Include \
 -IDrivers/CMSIS/Include \
@@ -216,7 +222,9 @@ C_INCLUDES =  \
 -IDrivers/STM32F4xx_HAL_Driver/Inc/Legacy \
 -IMiddlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS \
 -IMiddlewares/Third_Party/FreeRTOS/Source/include \
--IMiddlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM4_MPU
+-IMiddlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM4_MPU \
+-IOS \
+-ISafety
 
 
 

@@ -1,4 +1,7 @@
-build
-.yaml
-.cfg
-.vscode
+/build/
+*.yaml
+*.cfg
+/.vscode/
+*.mxproject
+*.mxsettings
+*.stm32env

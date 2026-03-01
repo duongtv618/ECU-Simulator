@@ -87,6 +87,14 @@ void HardFault_Handler(void)
 {
   /* USER CODE BEGIN HardFault_IRQn 0 */
 
+  volatile uint32_t fault_address = SCB->MMFAR;
+  volatile uint32_t cfsr = SCB->CFSR;
+  volatile uint32_t mmfsr = (cfsr & 0xFF);
+  volatile uint32_t fault_status = (mmfsr & 0x7F);
+  (void)fault_address;
+  (void)cfsr;
+  (void)mmfsr;
+  (void)fault_status;
   /* USER CODE END HardFault_IRQn 0 */
   while (1)
   {
