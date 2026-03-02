@@ -208,6 +208,8 @@ SECTIONS
     __bss_end__ = _ebss;
   } >RAM
 
+  __ipc_region_start__ = ORIGIN(IPC_REGION);
+  __ipc_region_end__ = ORIGIN(IPC_REGION) + LENGTH(IPC_REGION);
   .ipc_region (NOLOAD) :
   {
     . = ALIGN(4);
