@@ -112,6 +112,7 @@ OS/adc.c \
 OS/freertos.c \
 OS/gpio.c \
 OS/iwdg.c \
+OS/jitter.c \
 OS/os.c \
 OS/stm32f4xx_hal_msp.c \
 OS/stm32f4xx_hal_timebase_tim.c \
