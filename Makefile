@@ -79,10 +79,11 @@ Middlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM4_MPU/port.c \
 OS/sysmem.c \
 OS/syscalls.c \
 OS/os.c \
+OS/jitter.c \
 Safety/supervisor.c \
 Application/app.c \
 Application/sensor.c \
-Application/comm.c
+Application/comm.c 
 
 # ASM sources
 ASM_SOURCES =  \
