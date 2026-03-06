@@ -20,6 +20,9 @@ extern struct sensor_data_s
     uint16_t adc_value;
 } g_sensor_data;
 
+extern TaskHandle_t sensor_task_handle;
+extern TaskHandle_t comm_task_handle;
+extern TaskHandle_t supervisor_task_handle;
 /**
  * Task function prototypes
  */
