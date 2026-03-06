@@ -1,114 +1,129 @@
-/* USER CODE BEGIN Header */
-/**
-  ******************************************************************************
-  * @file    usart.c
-  * @brief   This file provides code for the configuration
-  *          of the USART instances.
-  ******************************************************************************
-  * @attention
-  *
-  * Copyright (c) 2026 STMicroelectronics.
-  * All rights reserved.
-  *
-  * This software is licensed under terms that can be found in the LICENSE file
-  * in the root directory of this software component.
-  * If no LICENSE file comes with this software, it is provided AS-IS.
-  *
-  ******************************************************************************
-  */
-/* USER CODE END Header */
-/* Includes ------------------------------------------------------------------*/
+#include "os_cfg.h"
 #include "usart.h"
 
-/* USER CODE BEGIN 0 */
+/** Internal varibale */
+IPC_REGION static uint8_t usart2_dma_busy_flag;
+IPC_REGION static uint8_t ring_buffer[USART_RING_BUFFER_SIZE];
+IPC_REGION static uint16_t tx_head;
+IPC_REGION static uint16_t tx_tail;
+IPC_REGION static uint16_t tx_len;
 
-/* USER CODE END 0 */
+extern uint32_t SystemCoreClock;
 
-UART_HandleTypeDef huart2;
+static void uart2_start_dma(void);
+void DMA1_Stream6_IRQHandler(void);
 
-/* USART2 init function */
-
-void MX_USART2_UART_Init(void)
+/** DMA ISR */
+void DMA1_Stream6_IRQHandler(void)
 {
-
-  /* USER CODE BEGIN USART2_Init 0 */
-
-  /* USER CODE END USART2_Init 0 */
-
-  /* USER CODE BEGIN USART2_Init 1 */
-
-  /* USER CODE END USART2_Init 1 */
-  huart2.Instance = USART2;
-  huart2.Init.BaudRate = 115200;
-  huart2.Init.WordLength = UART_WORDLENGTH_8B;
-  huart2.Init.StopBits = UART_STOPBITS_1;
-  huart2.Init.Parity = UART_PARITY_NONE;
-  huart2.Init.Mode = UART_MODE_TX_RX;
-  huart2.Init.HwFlowCtl = UART_HWCONTROL_NONE;
-  huart2.Init.OverSampling = UART_OVERSAMPLING_16;
-  if (HAL_UART_Init(&huart2) != HAL_OK)
+  if (DMA1->HISR & DMA_HISR_TCIF6)//Check flag
   {
-    Error_Handler();
-  }
-  /* USER CODE BEGIN USART2_Init 2 */
-
-  /* USER CODE END USART2_Init 2 */
-
-}
-
-void HAL_UART_MspInit(UART_HandleTypeDef* uartHandle)
-{
-
-  GPIO_InitTypeDef GPIO_InitStruct = {0};
-  if(uartHandle->Instance==USART2)
-  {
-  /* USER CODE BEGIN USART2_MspInit 0 */
-
-  /* USER CODE END USART2_MspInit 0 */
-    /* USART2 clock enable */
-    __HAL_RCC_USART2_CLK_ENABLE();
-
-    __HAL_RCC_GPIOA_CLK_ENABLE();
-    /**USART2 GPIO Configuration
-    PA2     ------> USART2_TX
-    PA3     ------> USART2_RX
-    */
-    GPIO_InitStruct.Pin = USART_TX_Pin|USART_RX_Pin;
-    GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
-    GPIO_InitStruct.Pull = GPIO_NOPULL;
-    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
-    GPIO_InitStruct.Alternate = GPIO_AF7_USART2;
-    HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-
-  /* USER CODE BEGIN USART2_MspInit 1 */
-
-  /* USER CODE END USART2_MspInit 1 */
+    DMA1->HIFCR |= DMA_HIFCR_CTCIF6;//Clear it
+    uint16_t sent = tx_len - DMA1_Stream6->NDTR;//Sent byte
+    tx_tail += sent;//Now tail is updated
+    if (tx_tail >= USART_RING_BUFFER_SIZE)//Then round. This is when ring buffer counter reach ring buffer size
+      tx_tail = 0;
+    usart2_dma_busy_flag = 0;//Clear flag for the next stream
+    uart2_start_dma();//Then start again for the rest
   }
 }
 
-void HAL_UART_MspDeInit(UART_HandleTypeDef* uartHandle)
+/** Write to tx dma usart2 */
+void usart2_write_tx(uint8_t *dat, uint16_t len)
 {
-
-  if(uartHandle->Instance==USART2)
+  for (size_t i = 0; i < len; i++)
   {
-  /* USER CODE BEGIN USART2_MspDeInit 0 */
+    ring_buffer[tx_head++] = dat[i];
 
-  /* USER CODE END USART2_MspDeInit 0 */
-    /* Peripheral clock disable */
-    __HAL_RCC_USART2_CLK_DISABLE();
-
-    /**USART2 GPIO Configuration
-    PA2     ------> USART2_TX
-    PA3     ------> USART2_RX
-    */
-    HAL_GPIO_DeInit(GPIOA, USART_TX_Pin|USART_RX_Pin);
-
-  /* USER CODE BEGIN USART2_MspDeInit 1 */
-
-  /* USER CODE END USART2_MspDeInit 1 */
+    if (tx_head >= USART_RING_BUFFER_SIZE)
+      tx_head = 0;
   }
+
+  uart2_start_dma();
 }
 
-/* USER CODE BEGIN 1 */
+/**
+ * @brief Start the dma, check head, tail, etc
+ * 
+ */
+static void uart2_start_dma(void)
+{
+  /** Busy? */
+  if (usart2_dma_busy_flag)
+    return;
 
-/* USER CODE END 1 */
+  /** Ring empty? */
+  if (tx_head == tx_tail)
+    return;
+
+  /** Not empty then calculate length, break into to part if len > (tx_tail + USART_RING_BUFFER_SIZE - 1) */
+  if (tx_head > tx_tail)
+    tx_len = tx_head - tx_tail;
+  else
+    tx_len = USART_RING_BUFFER_SIZE - tx_tail;
+
+  /** Set the dma stream */
+  DMA1_Stream6->M0AR = (uint32_t)&ring_buffer[tx_tail];
+  DMA1_Stream6->NDTR = tx_len;
+
+  /** Raise busy flag */
+  usart2_dma_busy_flag = 1;
+
+  /** Start stream */
+  DMA1_Stream6->CR |= DMA_SxCR_EN;
+}
+
+/**
+ * @brief Initialize usart2 and dma unit
+ * 
+ */
+void usart2_dma_init(void)
+{
+  /* Clock */
+  RCC->AHB1ENR |= RCC_AHB1ENR_GPIOAEN;
+  RCC->APB1ENR |= RCC_APB1ENR_USART2EN;
+
+  /* PA2 = TX (AF7) */
+  GPIOA->MODER &= ~(3 << (2 * 2));
+  GPIOA->MODER |= (2 << (2 * 2)); // AF
+
+  GPIOA->AFR[0] &= ~(0xF << (4 * 2));
+  GPIOA->AFR[0] |= (7 << (4 * 2)); // AF7
+
+  GPIOA->OSPEEDR |= (3 << (2 * 2)); // High speed
+
+  /* Baud 1152000 */
+  USART2->BRR = SystemCoreClock / 2 / 115200;
+
+  USART2->CR1 = USART_CR1_TE;
+  USART2->CR3 = USART_CR3_DMAT; // Enable DMA TX
+  USART2->CR1 |= USART_CR1_UE;  // Enable UART
+
+  /** Clock for dma */
+  RCC->AHB1ENR |= RCC_AHB1ENR_DMA1EN;
+
+  /* Disable stream */
+  DMA1_Stream6->CR &= ~DMA_SxCR_EN;
+  while (DMA1_Stream6->CR & DMA_SxCR_EN)
+    ;
+
+  /* Peripheral address */
+  DMA1_Stream6->PAR = (uint32_t)&USART2->DR;
+
+  /* Configure */
+  DMA1_Stream6->CR =
+      (4 << 25)        // Channel 4
+      | DMA_SxCR_MINC  // Memory increment
+      | DMA_SxCR_DIR_0 // Memory to peripheral
+      | DMA_SxCR_TCIE; // Transfer complete interrupt
+
+  /* Enable IRQ */
+  NVIC_SetPriority(DMA1_Stream6_IRQn, 5);
+  NVIC_EnableIRQ(DMA1_Stream6_IRQn);
+
+  /* IPC region is NOINIT so i have to initialze them */
+  tx_head = 0;
+  tx_tail = 0;
+  usart2_dma_busy_flag = 0;
+  tx_len = 0;
+}

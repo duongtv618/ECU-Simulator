@@ -4,6 +4,11 @@
 
 extern IWDG_HandleTypeDef hiwdg;
 
+/**
+ * @brief Supervisor task main function
+ * 
+ * @param pvParameters 
+ */
 void supervisor_task(void *pvParameters)
 {
     (void)pvParameters;
@@ -12,7 +17,7 @@ void supervisor_task(void *pvParameters)
     for (;;)
     {
         xLastWakeTime = xTaskGetTickCount();
-        HAL_IWDG_Refresh(&hiwdg);
+        // HAL_IWDG_Refresh(&hiwdg);
         /* Wait for the next cycle */
         vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(APP_SUPERVISOR_TASK_PERIOD_MS));
 

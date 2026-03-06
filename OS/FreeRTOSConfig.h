@@ -52,6 +52,11 @@
   #include <stdint.h>
   extern uint32_t SystemCoreClock;
 #endif
+
+extern void trace_task_switch_in(void);//For jitter calculation
+
+#define traceTASK_SWITCHED_IN() trace_task_switch_in()
+
 #define configENABLE_FPU                         0
 #define configENABLE_MPU                         1
 #define configENFORCE_SYSTEM_CALLS_FROM_KERNEL_ONLY 1
