@@ -82,7 +82,8 @@ OS/jitter.c \
 Safety/supervisor.c \
 Application/app.c \
 Application/sensor.c \
-Application/comm.c 
+Application/comm.c \
+Application/control.c
 
 # ASM sources
 ASM_SOURCES =  \
