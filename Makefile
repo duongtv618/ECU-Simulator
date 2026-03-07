@@ -79,6 +79,7 @@ OS/sysmem.c \
 OS/syscalls.c \
 OS/os.c \
 OS/jitter.c \
+OS/heartbeat.c \
 Safety/supervisor.c \
 Application/app.c \
 Application/sensor.c \
