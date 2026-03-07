@@ -38,7 +38,6 @@ BUILD_DIR = build
 C_SOURCES =  \
 Core/Src/main.c \
 OS/gpio.c \
-OS/freertos.c \
 OS/adc.c \
 OS/iwdg.c \
 OS/tim.c \
