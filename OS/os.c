@@ -4,23 +4,32 @@
 /** Definition of global variable */
 QueueHandle_t g_adc_queue IPC_REGION;
 
+static StaticTask_t xIdleTaskTCBBuffer;
+static StackType_t xIdleStack[configMINIMAL_STACK_SIZE];
+
+void vApplicationGetIdleTaskMemory( StaticTask_t **ppxIdleTaskTCBBuffer, StackType_t **ppxIdleTaskStackBuffer, uint32_t *pulIdleTaskStackSize );
+static void reverse(char str[], int32_t length);
+
+/**
+ * @brief Idle task memmory
+ * 
+ * @param ppxIdleTaskTCBBuffer Pointer point to a pointer to TCB task buffer
+ * @param ppxIdleTaskStackBuffer Pointer point to a pointer to Stack buffer
+ * @param pulIdleTaskStackSize Pointer point to Idle stack size
+ */
+void vApplicationGetIdleTaskMemory( StaticTask_t **ppxIdleTaskTCBBuffer, StackType_t **ppxIdleTaskStackBuffer, uint32_t *pulIdleTaskStackSize )
+{
+  *ppxIdleTaskTCBBuffer = &xIdleTaskTCBBuffer;
+  *ppxIdleTaskStackBuffer = &xIdleStack[0];
+  *pulIdleTaskStackSize = configMINIMAL_STACK_SIZE;
+}
+
 /** ISR handler */
 void ADC_IRQHandler(void);
 
 /** Static function */
 static void SystemClock_Config(void);
 
-/** ADC interrupt handler */
-void ADC_IRQHandler(void)
-{
-  if (ADC1->SR & ADC_SR_EOC)
-  {
-    uint16_t val = ADC1->DR;
-    BaseType_t xwake = pdFALSE;
-    xQueueSendFromISR(g_adc_queue, &val, &xwake);
-    portYIELD_FROM_ISR(xwake);
-  }
-}
 
 /** Register jitter task from app */
 void os_registerJitterTask(TaskHandle_t tskHandler, uint16_t periodMS)
@@ -55,9 +64,14 @@ void os_debug_put_string(const char *str)
   portRESET_PRIVILEGE();
 }
 
+inline void os_debug_put_ln(void)
+{
+  os_debug_put_string("\r\n");
+}
 /** Start adc sampling */
 void adc_start_sampling(void)
 {
+  adc1_software_trigger();
 }
 
 /** Stop adc sampling */
@@ -71,9 +85,9 @@ void os_init(void)
   SystemClock_Config(); // Then system PLL
 
   /** Then peripherals */
-  MX_GPIO_Init();
-  MX_ADC1_Init();
-  // MX_IWDG_Init();
+  led_init();
+  adc1_init();
+  // iwdg_init();
   MX_TIM3_Init();
   jitter_init();
 
@@ -122,3 +136,51 @@ static void SystemClock_Config(void)
   }
 }
 
+static void reverse(char str[], int32_t length) {
+    int32_t start = 0;
+    int32_t end = length - 1;
+    while (start < end) {
+        char temp = str[start];
+        str[start] = str[end];
+        str[end] = temp;
+        start++;
+        end--;
+    }
+}
+
+char* os_itoa(int32_t num, char* str, int32_t base) {
+    int32_t i = 0;
+    int32_t isNegative = 0;
+
+    // Handle 0 explicitly, otherwise empty string is printed
+    if (num == 0) {
+        str[i++] = '0';
+        str[i] = '\0';
+        return str;
+    }
+
+    // Handle negative numbers only if base is 10
+    if (num < 0 && base == 10) {
+        isNegative = 1;
+        num = -num;
+    }
+
+    // Process individual digits
+    while (num != 0) {
+        int32_t rem = num % base;
+        str[i++] = (rem > 9) ? (rem - 10) + 'a' : rem + '0';
+        num = num / base;
+    }
+
+    // If number is negative, append '-'
+    if (isNegative) {
+        str[i++] = '-';
+    }
+
+    str[i] = '\0'; // Append string terminator
+
+    // Reverse the string
+    reverse(str, i);
+
+    return str;
+}

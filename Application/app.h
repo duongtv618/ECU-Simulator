@@ -8,6 +8,7 @@
 #include "FreeRTOS.h"
 #include "task.h"
 #include "semphr.h"
+#include "event_groups.h"
 
 
 
@@ -23,6 +24,9 @@ extern struct sensor_data_s
 extern TaskHandle_t sensor_task_handle;
 extern TaskHandle_t comm_task_handle;
 extern TaskHandle_t supervisor_task_handle;
+extern TaskHandle_t control_task_handle;
+
+extern EventGroupHandle_t g_hb_evengroup;
 /**
  * Task function prototypes
  */

@@ -1,118 +1,69 @@
-/* USER CODE BEGIN Header */
-/**
-  ******************************************************************************
-  * @file    adc.c
-  * @brief   This file provides code for the configuration
-  *          of the ADC instances.
-  ******************************************************************************
-  * @attention
-  *
-  * Copyright (c) 2026 STMicroelectronics.
-  * All rights reserved.
-  *
-  * This software is licensed under terms that can be found in the LICENSE file
-  * in the root directory of this software component.
-  * If no LICENSE file comes with this software, it is provided AS-IS.
-  *
-  ******************************************************************************
-  */
-/* USER CODE END Header */
-/* Includes ------------------------------------------------------------------*/
+#include "app_cfg.h"
+
 #include "adc.h"
+#include <stdio.h>
+#include "stm32f4xx.h"
+#include "FreeRTOS.h"
+#include "queue.h"
 
-/* USER CODE BEGIN 0 */
+#define TS_CAL1 0x1FFF7A2C
+#define TS_CAL2 0x1FFF7A2E
 
-/* USER CODE END 0 */
+extern QueueHandle_t g_adc_queue;
 
-ADC_HandleTypeDef hadc1;
+void ADC_IRQHandler(void);
 
-/* ADC1 init function */
-void MX_ADC1_Init(void)
+/**
+ * @brief Initialize the ADC1
+ *
+ */
+void adc1_init(void)
 {
+  /** Clock enable */
+  RCC->APB2ENR |= RCC_APB2ENR_ADC1EN;
 
-  /* USER CODE BEGIN ADC1_Init 0 */
+  /** Use internal temperature sensor */
+  ADC->CCR |= ADC_CCR_TSVREFE;
 
-  /* USER CODE END ADC1_Init 0 */
+  /** Set up sampling time */
+  ADC1->SMPR1 |= (7 << ADC_SMPR1_SMP18_Pos);
 
-  ADC_ChannelConfTypeDef sConfig = {0};
+  /** Select channel 18 for temperature sensor */
+  ADC1->SQR3 = 18;
 
-  /* USER CODE BEGIN ADC1_Init 1 */
+  /** Enable end of conversion interrupt */
+  ADC1->CR1 |= ADC_CR1_EOCIE;
 
-  /* USER CODE END ADC1_Init 1 */
+  /** Enable ADC1 */
+  ADC1->CR2 |= ADC_CR2_ADON;
 
-  /** Configure the global features of the ADC (Clock, Resolution, Data Alignment and number of conversion)
-  */
-  hadc1.Instance = ADC1;
-  hadc1.Init.ClockPrescaler = ADC_CLOCK_SYNC_PCLK_DIV4;
-  hadc1.Init.Resolution = ADC_RESOLUTION_12B;
-  hadc1.Init.ScanConvMode = DISABLE;
-  hadc1.Init.ContinuousConvMode = DISABLE;
-  hadc1.Init.DiscontinuousConvMode = DISABLE;
-  hadc1.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_RISING;
-  hadc1.Init.ExternalTrigConv = ADC_EXTERNALTRIGCONV_T3_TRGO;
-  hadc1.Init.DataAlign = ADC_DATAALIGN_RIGHT;
-  hadc1.Init.NbrOfConversion = 1;
-  hadc1.Init.DMAContinuousRequests = DISABLE;
-  hadc1.Init.EOCSelection = ADC_EOC_SEQ_CONV;
-  if (HAL_ADC_Init(&hadc1) != HAL_OK)
-  {
-    Error_Handler();
-  }
-
-  /** Configure for the selected ADC regular channel its corresponding rank in the sequencer and its sample time.
-  */
-  sConfig.Channel = ADC_CHANNEL_TEMPSENSOR;
-  sConfig.Rank = 1;
-  sConfig.SamplingTime = ADC_SAMPLETIME_3CYCLES;
-  if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /* USER CODE BEGIN ADC1_Init 2 */
-
-  /* USER CODE END ADC1_Init 2 */
-
+  /** Enable interrupt */
+  NVIC_SetPriority(ADC_IRQn, configMAX_SYSCALL_INTERRUPT_PRIORITY - 1);
+  NVIC_EnableIRQ(ADC_IRQn);
 }
 
-void HAL_ADC_MspInit(ADC_HandleTypeDef* adcHandle)
+/**
+ * @brief Software trigger adc1
+ *
+ */
+void adc1_software_trigger(void)
 {
-
-  if(adcHandle->Instance==ADC1)
-  {
-  /* USER CODE BEGIN ADC1_MspInit 0 */
-
-  /* USER CODE END ADC1_MspInit 0 */
-    /* ADC1 clock enable */
-    __HAL_RCC_ADC1_CLK_ENABLE();
-
-    /* ADC1 interrupt Init */
-    HAL_NVIC_SetPriority(ADC_IRQn, 5, 0);
-    HAL_NVIC_EnableIRQ(ADC_IRQn);
-  /* USER CODE BEGIN ADC1_MspInit 1 */
-
-  /* USER CODE END ADC1_MspInit 1 */
-  }
+  ADC1->CR2 |= ADC_CR2_SWSTART;
 }
 
-void HAL_ADC_MspDeInit(ADC_HandleTypeDef* adcHandle)
+char msg[50];
+/** ADC interrupt handler */
+void ADC_IRQHandler(void)
 {
-
-  if(adcHandle->Instance==ADC1)
+  if (ADC1->SR & ADC_SR_EOC)
   {
-  /* USER CODE BEGIN ADC1_MspDeInit 0 */
-
-  /* USER CODE END ADC1_MspDeInit 0 */
-    /* Peripheral clock disable */
-    __HAL_RCC_ADC1_CLK_DISABLE();
-
-    /* ADC1 interrupt Deinit */
-    HAL_NVIC_DisableIRQ(ADC_IRQn);
-  /* USER CODE BEGIN ADC1_MspDeInit 1 */
-
-  /* USER CODE END ADC1_MspDeInit 1 */
+    uint16_t val = ADC1->DR;
+    BaseType_t xwake = pdFALSE;
+#ifdef INJECT_LONG_INTERRUPT_HANDLE
+    for (size_t i = 0; i < 60000; i++)
+      ;
+#endif
+    xQueueSendFromISR(g_adc_queue, &val, &xwake);
+    portYIELD_FROM_ISR(xwake);
   }
 }
-
-/* USER CODE BEGIN 1 */
-
-/* USER CODE END 1 */

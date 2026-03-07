@@ -19,22 +19,27 @@ extern uint32_t __ipc_region_size__[];
  * Global variable definitions
  */
 struct sensor_data_s g_sensor_data IPC_REGION;
+/** Even group for alive check */
+EventGroupHandle_t g_hb_evengroup IPC_REGION;
 
 /** Private variable */
 /** Task stack, need to aligne because of MPU port */
-StackType_t sensor_task_stack[APP_SENSOR_TASK_STACK_SIZE] __attribute__((aligned(APP_SENSOR_TASK_STACK_SIZE * sizeof(StackType_t))));
-StackType_t comm_task_stack[APP_COMM_TASK_STACK_SIZE] __attribute__((aligned(APP_COMM_TASK_STACK_SIZE * sizeof(StackType_t))));
-StackType_t supervisor_task_stack[APP_SUPERVISOR_TASK_STACK_SIZE] __attribute__((aligned(APP_SUPERVISOR_TASK_STACK_SIZE * sizeof(StackType_t))));
+StackType_t sensor_task_stack[APP_SENSOR_TASK_STACK_SIZE] __ALIGNED(APP_SENSOR_TASK_STACK_SIZE * sizeof(StackType_t));
+StackType_t comm_task_stack[APP_COMM_TASK_STACK_SIZE] __ALIGNED(APP_COMM_TASK_STACK_SIZE * sizeof(StackType_t));
+StackType_t supervisor_task_stack[APP_SUPERVISOR_TASK_STACK_SIZE] __ALIGNED(APP_SUPERVISOR_TASK_STACK_SIZE * sizeof(StackType_t));
+StackType_t control_task_stack[APP_CONTROL_TASK_STACK_SIZE] __ALIGNED(APP_CONTROL_TASK_STACK_SIZE * sizeof(StackType_t));
 
 /** Pointer to TCB */
 TaskHandle_t sensor_task_handle = NULL;
 TaskHandle_t comm_task_handle = NULL;
 TaskHandle_t supervisor_task_handle = NULL;
+TaskHandle_t control_task_handle = NULL;
 
 /** Static TCB */
 StaticTask_t sensor_task_buffer;
 StaticTask_t comm_task_buffer;
 StaticTask_t supervisor_task_buffer;
+StaticTask_t control_task_buffer;
 
 /** Task param */
 TaskParameters_t sensor_task_params = {
@@ -76,10 +81,24 @@ TaskParameters_t supervisor_task_params = {
         {(void *)FLASH_BASE, FLASH_SIZE, portMPU_REGION_READ_ONLY},
         {(void *)__ipc_region_start__, (uint32_t)__ipc_region_size__ , portMPU_REGION_READ_WRITE}}};
 
+TaskParameters_t control_task_params = {
+    .pvTaskCode = control_task,
+    .pcName = "Control task",
+    .usStackDepth = APP_CONTROL_TASK_STACK_SIZE,
+    .pvParameters = NULL,
+    .uxPriority = APP_CONTROL_TASK_PRIORITY,
+    .puxStackBuffer = control_task_stack,
+    .pxTaskBuffer = &control_task_buffer,
+    .xRegions = {
+        {control_task_stack, sizeof(control_task_stack) * sizeof(StackType_t), portMPU_REGION_READ_WRITE},
+        {(void *)FLASH_BASE, FLASH_SIZE, portMPU_REGION_READ_ONLY},
+        {(void *)__ipc_region_start__, (uint32_t)__ipc_region_size__, portMPU_REGION_READ_WRITE}}};
+
 /** Buffer for queue, sem ... */
 static StaticSemaphore_t g_sensor_data_mutex;
 static uint16_t adc_queue_buffer[10];
 static StaticQueue_t g_adc_queue_buffer;
+static StaticEventGroup_t s_hb_evengroup;
 
 /**
  * @brief Init application
@@ -98,12 +117,15 @@ void app_init(void)
     xTaskCreateRestrictedStatic(&sensor_task_params, &sensor_task_handle);
     xTaskCreateRestrictedStatic(&comm_task_params, &comm_task_handle);
     xTaskCreateRestrictedStatic(&supervisor_task_params, &supervisor_task_handle);
+    xTaskCreateRestrictedStatic(&control_task_params, &control_task_handle);
 
     /** Register task for jitter measuring */
     os_registerJitterTask(comm_task_handle, APP_COMM_TASK_PERIOD_MS);
     os_registerJitterTask(supervisor_task_handle, APP_SUPERVISOR_TASK_PERIOD_MS);
     os_registerJitterTask(sensor_task_handle, APP_SENSOR_TASK_PERIOD_MS);
+    os_registerJitterTask(control_task_handle, APP_CONTROL_TASK_PERIOD_MS);
 
+    g_hb_evengroup = xEventGroupCreateStatic(&s_hb_evengroup);
 }
 
 /** Start the app */
