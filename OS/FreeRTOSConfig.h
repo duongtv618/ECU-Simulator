@@ -54,8 +54,10 @@
 #endif
 
 extern void trace_task_switch_in(void);//For jitter calculation
+extern void trace_task_switch_out(void);
 
 #define traceTASK_SWITCHED_IN() trace_task_switch_in()
+#define traceTASK_SWITCHED_OUT() trace_task_switch_out()
 
 #define configENABLE_FPU                         0
 #define configENABLE_MPU                         1
