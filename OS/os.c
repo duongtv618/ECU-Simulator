@@ -109,7 +109,8 @@ void os_init(void)
   /** Then peripherals */
   led_init();
   adc1_init();
-  // iwdg_init();
+  iwdg_init();
+  timer_pwm_init();
   jitter_init();
 
   usart2_dma_init();
