@@ -19,8 +19,8 @@ extern uint32_t __ipc_region_size__[];
  * Global variable definitions
  */
 struct sensor_data_s g_sensor_data IPC_REGION;
-/** Even group for alive check */
-EventGroupHandle_t g_hb_evengroup IPC_REGION;
+
+uint32_t g_alive IPC_REGION;
 
 /** Private variable */
 /** Task stack, need to aligne because of MPU port */
@@ -98,7 +98,6 @@ TaskParameters_t control_task_params = {
 static StaticSemaphore_t g_sensor_data_mutex;
 static uint16_t adc_queue_buffer[10];
 static StaticQueue_t g_adc_queue_buffer;
-static StaticEventGroup_t s_hb_evengroup;
 
 /**
  * @brief Init application
@@ -125,7 +124,7 @@ void app_init(void)
     os_registerJitterTask(sensor_task_handle, APP_SENSOR_TASK_PERIOD_MS);
     os_registerJitterTask(control_task_handle, APP_CONTROL_TASK_PERIOD_MS);
 
-    g_hb_evengroup = xEventGroupCreateStatic(&s_hb_evengroup);
+    g_alive = 0xFFFF;
 }
 
 /** Start the app */

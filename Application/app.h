@@ -26,7 +26,7 @@ extern TaskHandle_t comm_task_handle;
 extern TaskHandle_t supervisor_task_handle;
 extern TaskHandle_t control_task_handle;
 
-extern EventGroupHandle_t g_hb_evengroup;
+extern uint32_t g_alive;
 /**
  * Task function prototypes
  */

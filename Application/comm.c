@@ -1,6 +1,6 @@
 #include "app.h"
 
-#include "stdio.h"
+#include <string.h>
 
 /**
  * @brief Extern task handle from app.h
@@ -22,26 +22,41 @@ const char mess[] = "ECU Simulator is running...\r\n";
 void comm_task(void *pvParameters)
 {
     (void)pvParameters;
-    TickType_t xLastWakeTime;//Wake time
-    char msg[20];//Buffer for sprintf, i should create a itoa function
+    TickType_t xLastWakeTime = xTaskGetTickCount();//Wake time
+    char msg[50];
 
     for (;;)
     {
-        xLastWakeTime = xTaskGetTickCount();
         led_toggle();
-        os_debug_put_string(mess);
-        os_debug_put_string("Control task jitter:");
-        os_debug_put_string(os_itoa(os_getMaxJitter(control_task_handle),msg, 10));
-        os_debug_put_ln();
-        os_debug_put_string("Supervisor task jitter:");
-        os_debug_put_string(os_itoa(os_getMaxJitter(supervisor_task_handle),msg, 10));
-        os_debug_put_ln();
-        os_debug_put_string("Sensor task jitter:");
-        os_debug_put_string(os_itoa(os_getMaxJitter(sensor_task_handle),msg, 10));
-        os_debug_put_ln();
-        os_debug_put_string("Comm task jitter:");
-        os_debug_put_string(os_itoa(os_getMaxJitter(comm_task_handle),msg, 10));
-        os_debug_put_ln();
+        os_log(OS_DEBUG_CONSOLE, (uint8_t *)mess, 0);
+        os_log(OS_DEBUG_CONSOLE, (uint8_t *)"Control task jitter: ", 0);
+        os_log(OS_DEBUG_CONSOLE, (uint8_t *)os_itoa(os_getMaxJitter(control_task_handle),msg, 10), 0);
+        os_log(OS_DEBUG_CONSOLE, (uint8_t *)", min jitter: ", 0);
+        os_log(OS_DEBUG_CONSOLE, (uint8_t *)os_itoa(jitter_get_min_jitter(control_task_handle), msg, 10), 0);
+        os_log(OS_DEBUG_CONSOLE, (uint8_t *)", max executed time: ", 0);
+        os_log(OS_DEBUG_CONSOLE, (uint8_t *)os_itoa(jitter_get_max_exec_time(control_task_handle), msg, 10), 0);
+        os_log(OS_DEBUG_CONSOLE, (uint8_t *)"\r\n", 0);
+        os_log(OS_DEBUG_CONSOLE, (uint8_t *)"Supervisor task jitter:", 0);
+        os_log(OS_DEBUG_CONSOLE, (uint8_t *)os_itoa(os_getMaxJitter(supervisor_task_handle),msg, 10), 0);
+        os_log(OS_DEBUG_CONSOLE, (uint8_t *)", min jitter: ", 0);
+        os_log(OS_DEBUG_CONSOLE, (uint8_t *)os_itoa(jitter_get_min_jitter(supervisor_task_handle), msg, 10), 0);
+        os_log(OS_DEBUG_CONSOLE, (uint8_t *)", max executed time: ", 0);
+        os_log(OS_DEBUG_CONSOLE, (uint8_t *)os_itoa(jitter_get_max_exec_time(supervisor_task_handle), msg, 10), 0);
+        os_log(OS_DEBUG_CONSOLE, (uint8_t *)"\r\n", 0);
+        os_log(OS_DEBUG_CONSOLE, (uint8_t *)"Sensor task jitter:", 0);
+        os_log(OS_DEBUG_CONSOLE, (uint8_t *)os_itoa(os_getMaxJitter(sensor_task_handle),msg, 10), 0);
+        os_log(OS_DEBUG_CONSOLE, (uint8_t *)", min jitter: ", 0);
+        os_log(OS_DEBUG_CONSOLE, (uint8_t *)os_itoa(jitter_get_min_jitter(sensor_task_handle), msg, 10), 0);
+        os_log(OS_DEBUG_CONSOLE, (uint8_t *)", max executed time: ", 0);
+        os_log(OS_DEBUG_CONSOLE, (uint8_t *)os_itoa(jitter_get_max_exec_time(sensor_task_handle), msg, 10), 0);
+        os_log(OS_DEBUG_CONSOLE, (uint8_t *)"\r\n", 0);
+        os_log(OS_DEBUG_CONSOLE, (uint8_t *)"Comm task jitter:", 0);
+        os_log(OS_DEBUG_CONSOLE, (uint8_t *)os_itoa(os_getMaxJitter(comm_task_handle),msg, 10), 0);
+        os_log(OS_DEBUG_CONSOLE, (uint8_t *)", min jitter: ", 0);
+        os_log(OS_DEBUG_CONSOLE, (uint8_t *)os_itoa(jitter_get_min_jitter(comm_task_handle), msg, 10), 0);
+        os_log(OS_DEBUG_CONSOLE, (uint8_t *)", max executed time: ", 0);
+        os_log(OS_DEBUG_CONSOLE, (uint8_t *)os_itoa(jitter_get_max_exec_time(comm_task_handle), msg, 10), 0);
+        os_log(OS_DEBUG_CONSOLE, (uint8_t *)"\r\n", 0);
         
         /* Wait for the next cycle */
         vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(APP_COMM_TASK_PERIOD_MS));
