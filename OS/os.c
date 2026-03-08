@@ -7,29 +7,55 @@ QueueHandle_t g_adc_queue IPC_REGION;
 static StaticTask_t xIdleTaskTCBBuffer;
 static StackType_t xIdleStack[configMINIMAL_STACK_SIZE];
 
-void vApplicationGetIdleTaskMemory( StaticTask_t **ppxIdleTaskTCBBuffer, StackType_t **ppxIdleTaskStackBuffer, uint32_t *pulIdleTaskStackSize );
+void vApplicationGetIdleTaskMemory(StaticTask_t **ppxIdleTaskTCBBuffer, StackType_t **ppxIdleTaskStackBuffer, uint32_t *pulIdleTaskStackSize);
 static void reverse(char str[], int32_t length);
-
-/**
- * @brief Idle task memmory
- * 
- * @param ppxIdleTaskTCBBuffer Pointer point to a pointer to TCB task buffer
- * @param ppxIdleTaskStackBuffer Pointer point to a pointer to Stack buffer
- * @param pulIdleTaskStackSize Pointer point to Idle stack size
- */
-void vApplicationGetIdleTaskMemory( StaticTask_t **ppxIdleTaskTCBBuffer, StackType_t **ppxIdleTaskStackBuffer, uint32_t *pulIdleTaskStackSize )
-{
-  *ppxIdleTaskTCBBuffer = &xIdleTaskTCBBuffer;
-  *ppxIdleTaskStackBuffer = &xIdleStack[0];
-  *pulIdleTaskStackSize = configMINIMAL_STACK_SIZE;
-}
 
 /** ISR handler */
 void ADC_IRQHandler(void);
 
 /** Static function */
 static void SystemClock_Config(void);
+static void os_debug_put_string(const char *str) SYSTEMCALL;
 
+/**
+ * @brief Idle task memmory
+ *
+ * @param ppxIdleTaskTCBBuffer Pointer point to a pointer to TCB task buffer
+ * @param ppxIdleTaskStackBuffer Pointer point to a pointer to Stack buffer
+ * @param pulIdleTaskStackSize Pointer point to Idle stack size
+ */
+void vApplicationGetIdleTaskMemory(StaticTask_t **ppxIdleTaskTCBBuffer, StackType_t **ppxIdleTaskStackBuffer, uint32_t *pulIdleTaskStackSize)
+{
+  *ppxIdleTaskTCBBuffer = &xIdleTaskTCBBuffer;
+  *ppxIdleTaskStackBuffer = &xIdleStack[0];
+  *pulIdleTaskStackSize = configMINIMAL_STACK_SIZE;
+}
+
+/**
+ * @brief OS log
+ *
+ * @param type Log to
+ * @param data Data to log
+ * @param len Length
+ */
+void os_log(os_log_type_t type, uint8_t *data, uint16_t len)
+{
+  switch (type)
+  {
+  case OS_DEBUG_CONSOLE:
+    os_debug_put_string((char *)data);
+    break;
+
+  case OS_FLASH:
+    break;
+
+  case OS_RTC_REGISTER:
+    break;
+
+  default:
+    break;
+  }
+}
 
 /** Register jitter task from app */
 void os_registerJitterTask(TaskHandle_t tskHandler, uint16_t periodMS)
@@ -41,8 +67,8 @@ void os_registerJitterTask(TaskHandle_t tskHandler, uint16_t periodMS)
 }
 
 /**
- * @brief Get max jitter in us  
- * 
+ * @brief Get max jitter in us
+ *
  * @param task Task to get
  * @return uint32_t Return value in us
  */
@@ -53,10 +79,10 @@ uint32_t os_getMaxJitter(TaskHandle_t task)
 
 /**
  * @brief Put String to debug console, currentlt USART2
- * 
+ *
  * @param str pointer to string source
  */
-void os_debug_put_string(const char *str)
+static void os_debug_put_string(const char *str)
 {
   if (portIS_PRIVILEGED() == pdFALSE)
     portRAISE_PRIVILEGE();
@@ -64,10 +90,6 @@ void os_debug_put_string(const char *str)
   portRESET_PRIVILEGE();
 }
 
-inline void os_debug_put_ln(void)
-{
-  os_debug_put_string("\r\n");
-}
 /** Start adc sampling */
 void adc_start_sampling(void)
 {
@@ -88,7 +110,6 @@ void os_init(void)
   led_init();
   adc1_init();
   // iwdg_init();
-  MX_TIM3_Init();
   jitter_init();
 
   usart2_dma_init();
@@ -119,7 +140,8 @@ static void SystemClock_Config(void)
   RCC_OscInitStruct.PLL.PLLQ = 4;
   if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
   {
-    Error_Handler();
+    while (1)
+      ;
   }
 
   /** Initializes the CPU, AHB and APB buses clocks
@@ -132,55 +154,63 @@ static void SystemClock_Config(void)
 
   if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_3) != HAL_OK)
   {
-    Error_Handler();
+    while (1)
+      ;
   }
 }
 
-static void reverse(char str[], int32_t length) {
-    int32_t start = 0;
-    int32_t end = length - 1;
-    while (start < end) {
-        char temp = str[start];
-        str[start] = str[end];
-        str[end] = temp;
-        start++;
-        end--;
-    }
+static void reverse(char str[], int32_t length)
+{
+  int32_t start = 0;
+  int32_t end = length - 1;
+  while (start < end)
+  {
+    char temp = str[start];
+    str[start] = str[end];
+    str[end] = temp;
+    start++;
+    end--;
+  }
 }
 
-char* os_itoa(int32_t num, char* str, int32_t base) {
-    int32_t i = 0;
-    int32_t isNegative = 0;
+char *os_itoa(int32_t num, char *str, int32_t base)
+{
+  int32_t i = 0;
+  int32_t isNegative = 0;
 
-    // Handle 0 explicitly, otherwise empty string is printed
-    if (num == 0) {
-        str[i++] = '0';
-        str[i] = '\0';
-        return str;
-    }
-
-    // Handle negative numbers only if base is 10
-    if (num < 0 && base == 10) {
-        isNegative = 1;
-        num = -num;
-    }
-
-    // Process individual digits
-    while (num != 0) {
-        int32_t rem = num % base;
-        str[i++] = (rem > 9) ? (rem - 10) + 'a' : rem + '0';
-        num = num / base;
-    }
-
-    // If number is negative, append '-'
-    if (isNegative) {
-        str[i++] = '-';
-    }
-
-    str[i] = '\0'; // Append string terminator
-
-    // Reverse the string
-    reverse(str, i);
-
+  // Handle 0 explicitly, otherwise empty string is printed
+  if (num == 0)
+  {
+    str[i++] = '0';
+    str[i] = '\0';
     return str;
+  }
+
+  // Handle negative numbers only if base is 10
+  if (num < 0 && base == 10)
+  {
+    isNegative = 1;
+    num = -num;
+  }
+
+  // Process individual digits
+  while (num != 0)
+  {
+    int32_t rem = num % base;
+    str[i++] = (rem > 9) ? (rem - 10) + 'a' : rem + '0';
+    num = num / base;
+  }
+
+  // If number is negative, append '-'
+  if (isNegative)
+  {
+    str[i++] = '-';
+  }
+
+  str[i] = '\0'; // Append string terminator
+
+  // Reverse the string
+  reverse(str, i);
+
+  return str;
 }

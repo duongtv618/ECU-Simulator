@@ -3,26 +3,29 @@
 
 #include "os_cfg.h"
 
-#include "stm32f4xx_hal.h"
-#include "stm32f4xx_hal_conf.h"
 #include "adc.h"
 #include "iwdg.h"
-#include "tim.h"
 #include "usart.h"
 #include "gpio.h"
 #include "jitter.h"
+#include "timer_pwm.h"
 
 #include "FreeRTOS.h"
 #include "queue.h"
 #include "task.h"
 #include "semphr.h"
 
+typedef enum {
+    OS_DEBUG_CONSOLE,
+    OS_FLASH,
+    OS_RTC_REGISTER
+} os_log_type_t;
+
 extern QueueHandle_t g_adc_queue;
 
 
 void os_init(void);
-void os_debug_put_string(const char *str) SYSTEMCALL;
-void os_debug_put_ln(void);
+void os_log(os_log_type_t type, uint8_t * data, uint16_t len);
 void os_registerJitterTask(TaskHandle_t tskHandler, uint16_t periodMS);
 uint32_t os_getMaxJitter(TaskHandle_t task);
 char *os_itoa(int32_t num, char* str, int32_t base);
