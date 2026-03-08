@@ -26,6 +26,10 @@ void sensor_task(void *pvParameters)
             g_sensor_data.adc_value = adc_value;
             xSemaphoreGive(g_sensor_data.data_mutex);
         }
+
+#ifdef INJECT_TASK_OVER_PERIOD
+        for (size_t i = 0; i < 300000; i++);
+#endif
         /** Set alive bit */
         // xEventGroupSetBits(g_hb_evengroup, APP_SENSOR_TASK_HB_BIT);
         g_alive |= APP_SENSOR_TASK_HB_BIT;
