@@ -40,7 +40,6 @@ Core/Src/main.c \
 OS/gpio.c \
 OS/adc.c \
 OS/iwdg.c \
-OS/tim.c \
 OS/usart.c \
 OS/stm32f4xx_it.c \
 OS/stm32f4xx_hal_msp.c \
@@ -79,6 +78,7 @@ OS/sysmem.c \
 OS/syscalls.c \
 OS/os.c \
 OS/jitter.c \
+OS/timer_pwm.c \
 Safety/supervisor.c \
 Application/app.c \
 Application/sensor.c \
