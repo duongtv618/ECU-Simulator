@@ -21,7 +21,7 @@ void supervisor_task(void *pvParameters)
             g_alive = 0;
             iwdg_refresh();
         } else {
-            os_log(OS_DEBUG_CONSOLE,(uint8_t*) "System panic\r\n", 0);
+            os_log(OS_DEBUG_CONSOLE,(uint8_t*) "Task not alive\r\n", 0);
             /** Can supend task here, if still panic do a hard reset
              * after hard reset if the problem is still there, the
              * machine have fatal broken, it is hardware problem now
