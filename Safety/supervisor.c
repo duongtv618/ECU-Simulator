@@ -3,8 +3,16 @@
 #include "iwdg.h"
 
 #define BITS_TO_WAIT (APP_SENSOR_TASK_HB_BIT | APP_CONTROL_TASK_HB_BIT)
+#define RAM_PATTEN_SIZE 8U
+#define PATTERN 0xA5A5A5A5
 
 extern uint32_t g_alive;
+
+static uint32_t ram_pattern[RAM_PATTEN_SIZE];
+
+static void ram_pattern_write(void);
+static int ram_pattern_check(void);
+
 /**
  * @brief Supervisor task main function
  *
@@ -13,9 +21,16 @@ extern uint32_t g_alive;
 void supervisor_task(void *pvParameters)
 {
     (void)pvParameters;
+    ram_pattern_write();
     TickType_t lastTick = xTaskGetTickCount();
     for (;;)
     {
+        if (ram_pattern_check())
+        {
+            //RAM corrupt, log fault then reboot to fail state
+            //LOG_FAULT(RAM_PATTERN_NOT_PASS);
+            // NVIC_SystemReset();
+        }
         if ((g_alive & BITS_TO_WAIT) == BITS_TO_WAIT){
             //System healthy
             g_alive = 0;
@@ -38,5 +53,25 @@ void supervisor_task(void *pvParameters)
         }
 
         vTaskDelayUntil(&lastTick, pdMS_TO_TICKS(APP_SUPERVISOR_TASK_PERIOD_MS));
+    }
+}
+
+
+static int ram_pattern_check(void)
+{
+    for (size_t i = 0; i < RAM_PATTEN_SIZE; i++)
+    {
+        if (ram_pattern != PATTERN)
+        {
+            return 1;
+        }       
+    }
+    return 0;
+}
+static void ram_pattern_write(void)
+{
+    for (size_t i = 0; i < RAM_PATTEN_SIZE; i++)
+    {
+        ram_pattern[i] = 0xA5A5A5A5;
     }
 }
