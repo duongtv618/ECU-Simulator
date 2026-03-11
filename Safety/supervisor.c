@@ -61,7 +61,7 @@ static int ram_pattern_check(void)
 {
     for (size_t i = 0; i < RAM_PATTEN_SIZE; i++)
     {
-        if (ram_pattern != PATTERN)
+        if (ram_pattern[i] != PATTERN)
         {
             return 1;
         }       
