@@ -34,7 +34,7 @@ void sensor_task(void *pvParameters);
 void comm_task(void *pvParameters);
 void control_task(void *pvParameters);
 void supervisor_task(void *pvParameters);
-
+void monitor_task(void *pvParameters);
 
 
 

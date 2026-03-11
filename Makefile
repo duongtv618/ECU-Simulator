@@ -80,6 +80,7 @@ OS/os.c \
 OS/jitter.c \
 OS/timer_pwm.c \
 Safety/supervisor.c \
+Safety/monitor.c \
 Application/app.c \
 Application/sensor.c \
 Application/comm.c \

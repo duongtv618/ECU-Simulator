@@ -28,18 +28,21 @@ StackType_t sensor_task_stack[APP_SENSOR_TASK_STACK_SIZE] __ALIGNED(APP_SENSOR_T
 StackType_t comm_task_stack[APP_COMM_TASK_STACK_SIZE] __ALIGNED(APP_COMM_TASK_STACK_SIZE * sizeof(StackType_t));
 StackType_t supervisor_task_stack[APP_SUPERVISOR_TASK_STACK_SIZE] __ALIGNED(APP_SUPERVISOR_TASK_STACK_SIZE * sizeof(StackType_t));
 StackType_t control_task_stack[APP_CONTROL_TASK_STACK_SIZE] __ALIGNED(APP_CONTROL_TASK_STACK_SIZE * sizeof(StackType_t));
+StackType_t monitor_task_stack[APP_MONITOR_TASK_STACK_SIZE] __ALIGNED(APP_MONITOR_TASK_STACK_SIZE * sizeof(StackType_t));
 
 /** Pointer to TCB */
 TaskHandle_t sensor_task_handle = NULL;
 TaskHandle_t comm_task_handle = NULL;
 TaskHandle_t supervisor_task_handle = NULL;
 TaskHandle_t control_task_handle = NULL;
+TaskHandle_t monitor_task_handle = NULL;
 
 /** Static TCB */
 StaticTask_t sensor_task_buffer;
 StaticTask_t comm_task_buffer;
 StaticTask_t supervisor_task_buffer;
 StaticTask_t control_task_buffer;
+StaticTask_t monitor_task_buffer;
 
 /** Task param */
 TaskParameters_t sensor_task_params = {
@@ -94,6 +97,19 @@ TaskParameters_t control_task_params = {
         {(void *)FLASH_BASE, FLASH_SIZE, portMPU_REGION_READ_ONLY},
         {(void *)__ipc_region_start__, (uint32_t)__ipc_region_size__, portMPU_REGION_READ_WRITE}}};
 
+TaskParameters_t monitor_task_params = {
+    .pvTaskCode = monitor_task,
+    .pcName = "Monitor task",
+    .usStackDepth = APP_MONITOR_TASK_STACK_SIZE,
+    .pvParameters = NULL,
+    .uxPriority = APP_MONITOR_TASK_PRIORITY,
+    .puxStackBuffer = monitor_task_stack,
+    .pxTaskBuffer = &monitor_task_buffer,
+    .xRegions = {
+        {monitor_task_stack, sizeof(monitor_task_stack) * sizeof(StackType_t), portMPU_REGION_READ_WRITE},
+        {(void *)FLASH_BASE, FLASH_SIZE, portMPU_REGION_READ_ONLY},
+        {(void *)__ipc_region_start__, (uint32_t)__ipc_region_size__, portMPU_REGION_READ_WRITE}}};
+
 /** Buffer for queue, sem ... */
 static StaticSemaphore_t g_sensor_data_mutex;
 static uint16_t adc_queue_buffer[10];
@@ -117,6 +133,7 @@ void app_init(void)
     xTaskCreateRestrictedStatic(&comm_task_params, &comm_task_handle);
     xTaskCreateRestrictedStatic(&supervisor_task_params, &supervisor_task_handle);
     xTaskCreateRestrictedStatic(&control_task_params, &control_task_handle);
+    xTaskCreateRestrictedStatic(&monitor_task_params, &monitor_task_handle);
 
     /** Register task for jitter measuring */
     os_registerJitterTask(comm_task_handle, APP_COMM_TASK_PERIOD_MS);
