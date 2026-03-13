@@ -23,7 +23,7 @@ void comm_task(void *pvParameters)
 {
     (void)pvParameters;
     TickType_t xLastWakeTime = xTaskGetTickCount();//Wake time
-    char msg[50];
+    // char msg[50];
 
     for (;;)
     {
