@@ -63,6 +63,8 @@ extern void trace_task_switch_out(void);
 #define configENABLE_MPU                         1
 #define configENFORCE_SYSTEM_CALLS_FROM_KERNEL_ONLY 1
 #define configUSE_MPU_WRAPPERS                     1
+#define configCHECK_FOR_STACK_OVERFLOW 2
+#define INCLUDE_uxTaskGetStackHighWaterMark2 1
 
 #define configUSE_PREEMPTION                     1
 #define configSUPPORT_STATIC_ALLOCATION          1
