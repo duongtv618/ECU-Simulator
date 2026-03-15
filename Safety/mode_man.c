@@ -1,7 +1,7 @@
 #include "mode_man.h"
 
 
-void momode_man_enter_mode(mode_man_t mode)
+void mode_man_enter_mode(mode_man_t mode)
 {
     /** Switch context here */
     switch (mode)
