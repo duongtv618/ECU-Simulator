@@ -3,6 +3,8 @@
 
 #define WARNING_THRESH_HOLD(x) (x / 5)
 #define FAIL_THRESH_HOLD(x) (x / 10)
+#define CPU_LOAD_WARNING_THR 70U
+#define CPU_LOAD_FAIL_THR 85U
 
 extern TaskHandle_t control_task_handle;
 extern TaskHandle_t supervisor_task_handle;
@@ -21,8 +23,12 @@ static struct monitor_stack_s
     APP_COMM_TASK_STACK_SIZE,
     APP_SENSOR_TASK_STACK_SIZE};
 
+static BaseType_t idleHookCounter = 0;
+
 void check_peak_stack_useage(void);
 void vApplicationStackOverflowHook(void);
+void vApplicationIdleHook(void);
+void monitor_checkCPULoad(uint32_t cpuLoad);
 
 /**
  * @brief Monitor task main function
@@ -68,12 +74,52 @@ void monitor_task(void *pvParameters)
             s_monitor.supervisorTaskMaxWaterMark = APP_SUPERVISOR_TASK_STACK_SIZE;
         }
 
+        /** CPU load */
+        uint32_t sensorExeTime = os_getAccumExeTime(sensor_task_handle);
+        uint32_t controlExeTime = os_getAccumExeTime(control_task_handle);
+        uint32_t superExeTime = os_getAccumExeTime(supervisor_task_handle);
+        uint32_t commExeTime = os_getAccumExeTime(comm_task_handle);
+
+        uint32_t cpuLoad = (sensorExeTime + controlExeTime + superExeTime + commExeTime) / (SystemCoreClock / 100U);
+
+        monitor_checkCPULoad(cpuLoad);
+
         vTaskDelayUntil(&lastTick, pdMS_TO_TICKS(APP_MONITOR_TASK_PERIOD_MS));
     }
 }
 
+/** Check CPU load */
+void monitor_checkCPULoad(uint32_t cpuLoad)
+{
+    if (cpuLoad >= CPU_LOAD_FAIL_THR)
+    {
+        mode_man_enter_mode(MODE_MAN_DEGRADE);
+    }
+    else if (cpuLoad >= CPU_LOAD_WARNING_THR)
+    {
+        mode_man_enter_mode(MODE_MAN_FAIL_SAFE);
+    }
+    else
+    {
+        /** CPU Load ok */
+    }
+}
+
+/** FreeRTOS idle hook */
+void vApplicationIdleHook(void){
+    idleHookCounter++;
+}
+
+/**
+ * @brief FreeRTOS application stack overflow hook
+ * 
+ */
 void vApplicationStackOverflowHook(void)
 {
+    /** Have stack over flow error which is detected by FreeRTOS scheduler
+     * Cause MPU is on, this hook is not neccesary, so let it be
+     */
+
 }
 
 void check_peak_stack_useage(void)

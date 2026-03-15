@@ -53,7 +53,7 @@
   extern uint32_t SystemCoreClock;
 #endif
 
-extern void trace_task_switch_in(void);//For jitter calculation
+extern void trace_task_switch_in(void);
 extern void trace_task_switch_out(void);
 
 #define traceTASK_SWITCHED_IN() trace_task_switch_in()
@@ -63,13 +63,13 @@ extern void trace_task_switch_out(void);
 #define configENABLE_MPU                         1
 #define configENFORCE_SYSTEM_CALLS_FROM_KERNEL_ONLY 1
 #define configUSE_MPU_WRAPPERS                     1
-#define configCHECK_FOR_STACK_OVERFLOW 2
-#define INCLUDE_uxTaskGetStackHighWaterMark2 1
+#define configCHECK_FOR_STACK_OVERFLOW            2
+#define INCLUDE_uxTaskGetStackHighWaterMark2      1
 
 #define configUSE_PREEMPTION                     1
 #define configSUPPORT_STATIC_ALLOCATION          1
 #define configSUPPORT_DYNAMIC_ALLOCATION         0
-#define configUSE_IDLE_HOOK                      0
+#define configUSE_IDLE_HOOK                      1
 #define configUSE_TICK_HOOK                      0
 #define configCPU_CLOCK_HZ                       ( SystemCoreClock )
 #define configTICK_RATE_HZ                       ((TickType_t)1000)
