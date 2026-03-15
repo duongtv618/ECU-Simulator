@@ -7,6 +7,10 @@ QueueHandle_t g_adc_queue IPC_REGION;
 static StaticTask_t xIdleTaskTCBBuffer;
 static StackType_t xIdleStack[configMINIMAL_STACK_SIZE];
 
+
+extern void trace_task_switch_in(void);
+extern void trace_task_switch_out(void);
+
 void vApplicationGetIdleTaskMemory(StaticTask_t **ppxIdleTaskTCBBuffer, StackType_t **ppxIdleTaskStackBuffer, uint32_t *pulIdleTaskStackSize);
 static void reverse(char str[], int32_t length);
 
@@ -57,6 +61,18 @@ void os_log(os_log_type_t type, uint8_t *data, uint16_t len)
   }
 }
 
+/** FreeRTOS trace task switch in */
+void trace_task_switch_in(void)
+{
+  jitter_trace_task_switch_in();
+}
+
+/** FreeRTOS trace task switch out */
+void trace_task_switch_out(void)
+{
+  jitter_trace_task_switch_out();
+}
+
 /** Register jitter task from app */
 void os_registerJitterTask(TaskHandle_t tskHandler, uint16_t periodMS)
 {
@@ -75,6 +91,12 @@ void os_registerJitterTask(TaskHandle_t tskHandler, uint16_t periodMS)
 uint32_t os_getMaxJitter(TaskHandle_t task)
 {
   return jitter_get_max_jitter(task);
+}
+
+
+uint32_t os_getAccumExeTime(TaskHandle_t task)
+{
+  return jitter_get_accum_exe_time(task);
 }
 
 /**
@@ -115,6 +137,8 @@ void os_init(void)
 
   usart2_dma_init();
 }
+
+
 
 /** System clock config */
 static void SystemClock_Config(void)

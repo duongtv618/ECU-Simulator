@@ -18,6 +18,7 @@ struct jitter
     int32_t min;//Min jitter
     uint32_t executedTime;//Executed time
     uint32_t maxExecTime;//Max executed time
+    uint32_t accumExecutedTime;//For CPU load cal
     uint8_t first;//Ignore first messurement
 } s_jitter[OS_JITTER_MAX_TASK] IPC_REGION;
 
@@ -56,6 +57,7 @@ void jitter_add_task(TaskHandle_t tsk, uint32_t period)
     s_jitter[counter].first = 1;
     s_jitter[counter].executedTime = 0;
     s_jitter[counter].maxExecTime = 0;
+    s_jitter[counter].accumExecutedTime = 0;
     counter++;
 }
 
@@ -65,7 +67,7 @@ void jitter_add_task(TaskHandle_t tsk, uint32_t period)
  * so no need to raise privilege
  * 
  */
-void trace_task_switch_in(void)
+void jitter_trace_task_switch_in(void)
 {
     for (size_t i = 0; i < counter; i++)
     {
@@ -94,7 +96,7 @@ void trace_task_switch_in(void)
  * For task executed time calculation
  * 
  */
-void trace_task_switch_out(void)
+void jitter_trace_task_switch_out(void)
 {
     for (size_t i = 0; i < counter; i++)
     {
@@ -102,6 +104,7 @@ void trace_task_switch_out(void)
         {
             uint32_t now = DWT->CYCCNT;
             s_jitter[i].executedTime = now - s_jitter[i].last;
+            s_jitter[i].accumExecutedTime += s_jitter[i].executedTime;
             if (s_jitter[i].executedTime > s_jitter[i].maxExecTime)
                 s_jitter[i].maxExecTime = s_jitter[i].executedTime;
             break;
@@ -167,4 +170,21 @@ uint32_t jitter_get_max_exec_time(TaskHandle_t task){
         }
     }
     return ret;
+}
+
+
+uint32_t jitter_get_accum_exe_time(TaskHandle_t task)
+{
+    uint32_t ret = 0;
+    for (size_t i = 0; i < counter; i++)
+    {
+        if (s_jitter[i].task == task)
+        {
+            ret = s_jitter[i].accumExecutedTime;
+            s_jitter[i].accumExecutedTime = 0;
+            break;
+        }
+    }
+    return ret;
+
 }

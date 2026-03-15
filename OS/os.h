@@ -28,6 +28,7 @@ void os_init(void);
 void os_log(os_log_type_t type, uint8_t * data, uint16_t len);
 void os_registerJitterTask(TaskHandle_t tskHandler, uint16_t periodMS);
 uint32_t os_getMaxJitter(TaskHandle_t task);
+uint32_t os_getAccumExeTime(TaskHandle_t task);
 char *os_itoa(int32_t num, char* str, int32_t base);
 
 void adc_start_sampling(void);
